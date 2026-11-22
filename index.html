@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Исправь ошибки Незнайки</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+  h1 {
+    text-align: center;
+    color: #e74c3c;
+    margin-top: 0;
+    font-size: 26px;
+  }
+  .intro {
+    text-align: center;
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 25px;
+    line-height: 1.5;
+  }
+  .word-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 12px;
+    border-left: 5px solid #e74c3c;
+  }
+  .word-label {
+    font-weight: 600;
+    color: #7f8c8d;
+    min-width: 35px;
+    font-size: 14px;
+  }
+  .word-content {
+    font-size: 22px;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .word-content span {
+    margin: 0 1px;
+  }
+  input.letter {
+    width: 26px;
+    height: 34px;
+    font-size: 20px;
+    text-align: center;
+    border: 2px dashed #bdc3c7;
+    border-radius: 6px;
+    margin: 0 2px;
+    background: #fff;
+    text-transform: lowercase;
+    outline: none;
+    transition: all 0.2s;
+  }
+  input.letter:focus {
+    border-color: #3498db;
+    background: #eaf4fc;
+  }
+  input.letter.upper-input {
+    text-transform: uppercase;
+  }
+  .hint {
+    font-size: 13px;
+    color: #95a5a6;
+    margin-left: 8px;
+    font-style: italic;
+  }
+  .buttons {
+    text-align: center;
+    margin-top: 30px;
+  }
+  button {
+    font-size: 18px;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin: 5px;
+    transition: transform 0.1s, box-shadow 0.2s;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-check {
+    background: #2ecc71;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
+  }
+  .btn-check:hover { background: #27ae60; }
+  .btn-reset {
+    background: #ecf0f1;
+    color: #555;
+  }
+  .btn-reset:hover { background: #d5dbdb; }
+  #result {
+    margin-top: 25px;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 18px;
+    text-align: center;
+    display: none;
+    line-height: 1.6;
+  }
+  #result.success {
+    background: #d4edda;
+    color: #155724;
+    border: 2px solid #c3e6cb;
+  }
+  #result.partial {
+    background: #fff3cd;
+    color: #856404;
+    border: 2px solid #ffeeba;
+  }
+  #result.fail {
+    background: #f8d7da;
+    color: #721c24;
+    border: 2px solid #f5c6cb;
+  }
+  .correct-answer {
+    font-weight: 700;
+    color: #2980b9;
+  }
+  .wrong-letter {
+    color: #e74c3c;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🕵️ Исправь ошибки Незнайки</h1>
+  <p class="intro">Незнайка писал словарный диктант и очень устал — он сделал много ошибок!<br>
+  Помоги ему стать отличником: <b>впиши правильные буквы в пустые окошки</b>.<br>
+  Не забудь: названия городов и стран пишутся с <b>большой буквы</b>!</p>
+
+  <div id="words-container"></div>
+
+  <div class="buttons">
+    <button class="btn-check" onclick="checkAnswers()">✅ Проверить</button>
+    <button class="btn-reset" onclick="resetGame()">🔄 Заново</button>
+  </div>
+
+  <div id="result"></div>
+</div>
+
+<script>
+  // Данные: word — правильное слово, display — как оно показано с ошибками.
+  // '{' и '}' — места для ввода (строчная и заглавная соответственно).
+  const tasks = [
+    { word: "ребята",            display: "р{б}ята",                 hint: "группа детей" },
+    { word: "девочка",           display: "д{в}чка",                 hint: "юная леди" },
+    { word: "мальчик",           display: "ма{л}чик",                hint: "юный джентльмен" },
+    { word: "дежурный",          display: "д{ж}урный",               hint: "тот, кто на посту" },
+    { word: "товарищ",           display: "товари{щ}",               hint: "друг, приятель" },
+    { word: "ученица",           display: "учени{ц}а",               hint: "школьница" },
+    { word: "учительница",       display: "учительни{ц}а",           hint: "педагог (женщина)" },
+    { word: "народ",             display: "н{р}од",                  hint: "жители страны" },
+    { word: "директор",          display: "дире{к}тор",              hint: "главный в школе" },
+    { word: "рабочий",           display: "рабо{ч}ий",               hint: "труженик" },
+
+    { word: "библиотека",        display: "би{б}лиотека",            hint: "дом книг" },
+    { word: "класс",             display: "кла{с}",                  hint: "комната для уроков" },
+    { word: "алфавит",           display: "алфави{т}",               hint: "все буквы по порядку" },
+    { word: "альбом",            display: "ал{ь}бом",                hint: "для рисования" },
+    { word: "пенал",             display: "пе{н}ал",                 hint: "для ручек и карандашей" },
+    { word: "тетрадь",           display: "тетра{д}ь",               hint: "для письма" },
+    { word: "карандаш",          display: "каранда{ш}",              hint: "для рисования" },
+    { word: "рисунок",           display: "рисуно{к}",               hint: "картинка" },
+    { word: "картина",           display: "карт{и}на",               hint: "произведение живописи" },
+    { word: "русский",           display: "ру{с}кий",                hint: "язык" },
+    { word: "язык",              display: "я{з}ык",                  hint: "русский..." },
+
+    { word: "Россия",            display: "{Р}оссия",                hint: "наша страна" },
+    { word: "Москва",            display: "{М}осква",                hint: "столица" },
+    { word: "столица",           display: "ст{о}лица",               hint: "главный город" },
+    { word: "город",             display: "гор{о}д",                 hint: "населённый пункт" },
+    { word: "Кремль",            display: "{К}ремль",                hint: "в Москве" },
+    { word: "Красная площадь",   display: "{К}расная пло{щ}адь",     hint: "главная площадь" },
+    { word: "улица",             display: "у{л}ица",                 hint: "дорога в городе" },
+    { word: "адрес",             display: "а{д}рес",                 hint: "где живёшь" },
+    { word: "аллея",             display: "а{л}ея",                  hint: "дорога с деревьями" },
+    { word: "завод",             display: "за{в}од",                 hint: "фабрика" },
+
+    { word: "завтрак",           display: "за{в}трак",               hint: "утренняя еда" },
+    { word: "обед",              display: "о{б}ед",                  hint: "дневная еда" },
+    { word: "ужин",              display: "у{ж}ин",                  hint: "вечерняя еда" },
+    { word: "посуда",            display: "по{с}уда",                hint: "тарелки и чашки" },
+    { word: "тарелка",           display: "тар{е}лка",               hint: "из неё едят" },
+    { word: "стакан",            display: "ста{к}ан",                hint: "для воды" },
+    { word: "кастрюля",          display: "кастр{ю}ля",              hint: "для супа" },
+    { word: "компот",            display: "ком{п}от",                hint: "напиток из фруктов" },
+    { word: "песок",             display: "пе{с}ок",                 hint: "в песочнице" },
+    { word: "сахар",             display: "са{х}ар",                 hint: "сладкий" },
+
+    { word: "дорога",            display: "до{р}ога",                hint: "путь" },
+    { word: "машина",            display: "ма{ш}ина",                hint: "автомобиль" },
+    { word: "автобус",           display: "авто{б}ус",               hint: "общественный транспорт" },
+    { word: "автомобиль",        display: "автомо{б}иль",            hint: "машина" },
+    { word: "трамвай",           display: "трам{в}ай",               hint: "рельсовый транспорт" },
+    { word: "шоссе",             display: "шо{с}е",                  hint: "большая дорога" },
+    { word: "метро",             display: "ме{т}ро",                 hint: "подземный транспорт" },
+    { word: "шофёр",             display: "шо{ф}ёр",                 hint: "водитель" },
+    { word: "билет",             display: "би{л}ет",                 hint: "для проезда" },
+    { word: "вагон",             display: "ва{г}он",                 hint: "часть поезда" },
+    { word: "вокзал",            display: "вок{з}ал",                hint: "там ждут поезда" },
+    { word: "пассажир",          display: "пасса{ж}ир",              hint: "тот, кто едет" }
+  ];
+
+  let currentTasks = [];
+
+  function renderGame() {
+    const container = document.getElementById('words-container');
+    container.innerHTML = '';
+    // Перемешиваем и берём 15 случайных слов для одного раунда
+    currentTasks = [...tasks].sort(() => Math.random() - 0.5).slice(0, 15);
+
+    currentTasks.forEach((task, idx) => {
+      const row = document.createElement('div');
+      row.className = 'word-row';
+
+      const label = document.createElement('span');
+      label.className = 'word-label';
+      label.textContent = (idx + 1) + '.';
+      row.appendChild(label);
+
+      const content = document.createElement('div');
+      content.className = 'word-content';
+
+      // Разбираем display на символы и создаём input для { } и { }
+      let letterIndex = 0;
+      const display = task.display;
+      for (let i = 0; i < display.length; i++) {
+        const ch = display[i];
+        if (ch === '{') {
+          // Находим закрывающую скобку
+          const close = display.indexOf('}', i);
+          const isUpper = close > i + 1 ? false : false;
+          // Определяем, заглавная ли это позиция: если это первый символ слова
+          const isFirst = (i === 0);
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 1;
+          input.className = 'letter' + (isFirst ? ' upper-input' : '');
+          input.dataset.word = task.word;
+          input.dataset.index = letterIndex;
+          input.dataset.isFirst = isFirst;
+          content.appendChild(input);
+          letterIndex++;
+          // Пропускаем содержимое до '}'
+          i = close;
+        } else if (ch === '}') {
+          // пропускаем
+        } else {
+          const span = document.createElement('span');
+          span.textContent = ch;
+          content.appendChild(span);
+        }
+      }
+
+      row.appendChild(content);
+
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = task.hint;
+      row.appendChild(hint);
+
+      container.appendChild(row);
+    });
+  }
+
+  function checkAnswers() {
+    const inputs = document.querySelectorAll('input.letter');
+    let total = 0;
+    let correct = 0;
+    const wrongWords = new Set();
+
+    // Собираем ответы по словам
+    const answers = {};
+    inputs.forEach(inp => {
+      const word = inp.dataset.word;
+      if (!answers[word]) answers[word] = {};
+      answers[word][inp.dataset.index] = {
+        value: inp.value.trim(),
+        isFirst: inp.dataset.isFirst === 'true',
+        element: inp
+      };
+    });
+
+    // Проверяем каждое слово
+    currentTasks.forEach(task => {
+      const word = task.word;
+      const wordAnswers = answers[word];
+      if (!wordAnswers) return;
+
+      // Собираем введённые буквы по порядку
+      const indices = Object.keys(wordAnswers).sort((a,b) => a - b);
+      let entered = '';
+      indices.forEach(i => {
+        entered += wordAnswers[i].value;
+      });
+
+      // Сравниваем с правильным словом (без учёта регистра для сравнения, но с проверкой регистра отдельно)
+      total++;
+      const wordLower = word.toLowerCase();
+      const enteredLower = entered.toLowerCase();
+      const isCorrect = (enteredLower === wordLower);
+
+      // Проверка заглавных букв
+      let caseCorrect = true;
+      indices.forEach((i, pos) => {
+        const ans = wordAnswers[i];
+        const correctChar = word[pos];
+        const enteredChar = ans.value;
+        if (enteredChar === '') { caseCorrect = false; return; }
+        // Если правильная буква заглавная — введённая должна быть заглавной
+        if (correctChar !== correctChar.toLowerCase()) {
+          if (enteredChar !== enteredChar.toUpperCase()) caseCorrect = false;
+        } else {
+          // Если правильная строчная — введённая должна быть строчной
+          if (enteredChar !== enteredChar.toLowerCase()) caseCorrect = false;
+        }
+      });
+
+      if (isCorrect && caseCorrect) {
+        correct++;
+      } else {
+        wrongWords.add(word);
+      }
+    });
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.style.display = 'block';
+
+    if (correct === total) {
+      resultDiv.className = 'success';
+      resultDiv.innerHTML = `🎉 <b>Молодец!</b> Все ${total} слов написаны без ошибок!<br>Незнайка теперь точно станет отличником!`;
+    } else {
+      resultDiv.className = correct > total / 2 ? 'partial' : 'fail';
+      let msg = `Правильно: <b>${correct}</b> из <b>${total}</b>.<br>`;
+      msg += `Слова, где есть ошибки (нажми «Заново», чтобы исправить):<br>`;
+      msg += Array.from(wrongWords).map(w => `<span class="correct-answer">${w}</span>`).join(', ');
+      resultDiv.innerHTML = msg;
+    }
+
+    // Подсветка правильных/неправильных полей
+    inputs.forEach(inp => {
+      const word = inp.dataset.word;
+      const idx = inp.dataset.index;
+      const task = currentTasks.find(t => t.word === word);
+      if (!task) return;
+
+      // Определяем правильную букву для этой позиции
+      // Нужно сопоставить индекс ввода с позицией в слове
+      // Проще: пересобрать правильное слово по позициям
+      const wordChars = task.word.split('');
+      // Найдём все позиции ввода для этого слова в порядке
+      const wordInputs = Array.from(inputs).filter(i => i.dataset.word === word);
+      const inpPos = wordInputs.indexOf(inp);
+      // inpPos — это порядковый номер ввода в слове, но он не совпадает с индексом в слове
+      // Нужно найти реальную позицию в слове: идём по display и считаем
+      let realPos = 0;
+      let count = 0;
+      const display = task.display;
+      for (let i = 0; i < display.length; i++) {
+        if (display[i] === '{') {
+          if (count === inpPos) {
+            realPos = i;
+            break;
+          }
+          count++;
+          // пропускаем до }
+          i = display.indexOf('}', i);
+        }
+      }
+      // Теперь realPos — это позиция в display, а не в слове.
+      // Но поскольку display содержит те же буквы, что и word, кроме фигурных скобок,
+      // позиция в слове = позиция в display минус количество скобок до неё.
+      // Проще: собрать "чистое" слово из display, убрав скобки, и найти позицию.
+      // Сделаем проще: для проверки подсветки просто сравним введённое значение с правильной буквой по порядку.
+      const enteredVal = inp.value.trim();
+      const wordInputsAll = Array.from(inputs).filter(i => i.dataset.word === word);
+      const posInWord = wordInputsAll.indexOf(inp);
+      // Но posInWord — это индекс ввода, а не позиция в слове.
+      // Нужно найти позицию в слове: пройтись по task.word и посчитать, сколько букв до этой позиции.
+      // Так как вводы идут по порядку, posInWord-й ввод соответствует posInWord-й "дырке" в display.
+      // Найдём реальную позицию в слове: переберём display, считая буквы (не скобки).
+      let letterCounter = 0;
+      let realLetterPos = -1;
+      for (let i = 0; i < display.length; i++) {
+        if (display[i] === '{') {
+          if (letterCounter === posInWord) {
+            realLetterPos = i; // позиция в display
+            break;
+          }
+          letterCounter++;
+          i = display.indexOf('}', i);
+        }
+      }
+      // realLetterPos — позиция в display, где стоит '{'. Но буква в слове имеет ту же позицию,
+      // если убрать скобки. Посчитаем, сколько букв (не скобок) было до этой позиции.
+      let lettersBefore = 0;
+      for (let i = 0; i < realLetterPos; i++) {
+        if (display[i] !== '{' && display[i] !== '}') lettersBefore++;
+      }
+      const correctChar = task.word[lettersBefore];
+
+      const enteredChar = inp.value.trim();
+      if (enteredChar === '') {
+        inp.style.borderColor = '#e74c3c';
+        inp.style.background = '#fdecea';
+        return;
+      }
+      // Сравниваем без учёта регистра, но проверяем регистр
+      const isLetterCorrect = enteredChar.toLowerCase() === correctChar.toLowerCase();
+      const isCaseCorrect = (correctChar === correctChar.toLowerCase())
+        ? (enteredChar === enteredChar.toLowerCase())
+        : (enteredChar === enteredChar.toUpperCase());
+
+      if (isLetterCorrect && isCaseCorrect) {
+        inp.style.borderColor = '#2ecc71';
+        inp.style.background = '#eafaf1';
+      } else {
+        inp.style.borderColor = '#e74c3c';
+        inp.style.background = '#fdecea';
+      }
+    });
+  }
+
+  function resetGame() {
+    renderGame();
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('result').className = '';
+  }
+
+  // Запуск
+  renderGame();
+</script>
+</body>
+</html>
